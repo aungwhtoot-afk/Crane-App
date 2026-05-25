@@ -2,7 +2,7 @@ import flet as ft
 import math
 
 def main(page: ft.Page):
-    page.title = "Steel1 - Smart Lift Planner"
+    page.title = "Steel1 - Crane Planner"
     page.scroll = "adaptive"
     page.theme_mode = ft.ThemeMode.LIGHT
     
@@ -32,15 +32,16 @@ def main(page: ft.Page):
     }
     single_line_pull = 3.5
     
-    outrigger_dd = ft.Dropdown(label="Outrigger အကျယ် (m)", options=[ft.dropdown.Option("6.3"), ft.dropdown.Option("5.1")], value="6.3")
-    area_dd = ft.Dropdown(label="ဧရိယာ ('360', 'front', 'side')", options=[ft.dropdown.Option("360"), ft.dropdown.Option("front"), ft.dropdown.Option("side")], value="360")
-    parts_in = ft.TextField(label="ကြိုးအရေအတွက် (Parts of line)", value="4", keyboard_type="number")
+    # လေဘယ်များကို တိုတိုရှင်းရှင်း ပြင်ထားသဖြင့် အကွက်များ လုံးဝမထပ်တော့ပါ
+    outrigger_dd = ft.Dropdown(label="Outrigger (m)", options=[ft.dropdown.Option("6.3"), ft.dropdown.Option("5.1")], value="6.3")
+    area_dd = ft.Dropdown(label="အလုပ်လုပ်မည့် ဧရိယာ", options=[ft.dropdown.Option("360"), ft.dropdown.Option("front"), ft.dropdown.Option("side")], value="360")
+    parts_in = ft.TextField(label="ကြိုးအရေအတွက် (Parts)", value="4", keyboard_type="number")
     
-    t1_rad = ft.TextField(label="လိုအပ်သော အကွာအဝေး Radius (m)", keyboard_type="number")
+    t1_rad = ft.TextField(label="လိုအပ်သော Radius (m)", keyboard_type="number")
     t1_load = ft.TextField(label="မချီမည့် ဝန် (တန်)", keyboard_type="number")
     t1_res = ft.Text("", size=15, weight="bold")
     
-    t2_boom = ft.Dropdown(label="ထုတ်မည့် Boom အရှည် ရွေးပါ (m)", options=[ft.dropdown.Option("9.5"), ft.dropdown.Option("16.6"), ft.dropdown.Option("23.52"), ft.dropdown.Option("30.62")], value="16.6")
+    t2_boom = ft.Dropdown(label="Boom အရှည် (m)", options=[ft.dropdown.Option("9.5"), ft.dropdown.Option("16.6"), ft.dropdown.Option("23.52"), ft.dropdown.Option("30.62")], value="16.6")
     t2_rad = ft.TextField(label="အကွာအဝေး Radius (m)", keyboard_type="number")
     t2_res = ft.Text("", size=15, weight="bold")
 
@@ -48,9 +49,9 @@ def main(page: ft.Page):
         out_val = float(outrigger_dd.value)
         area_val = area_dd.value.lower()
         if out_val == 6.3 and area_val != "360":
-            return "⚠️ [Error] Outrigger 6.3m တွင် '360' သာ ရွေးပါ။"
+            return "⚠️ Outrigger 6.3m တွင် '360' သာ ရွေးပါ။"
         if out_val == 5.1 and area_val == "360":
-            return "⚠️ [Error] Outrigger 5.1m တွင် 'front' သို့မဟုတ် 'side' သာ ရွေးပါ။"
+            return "⚠️ Outrigger 5.1m တွင် 'front' သို့မဟုတ် 'side' သာ ရွေးပါ။"
         return None
 
     def get_safe_rad_and_cap(capacities, rad):
@@ -72,7 +73,7 @@ def main(page: ft.Page):
             rope_cap = int(parts_in.value) * single_line_pull
             booms = crane_database[float(outrigger_dd.value)][area_dd.value.lower()]
             found = False
-            res_str = "📊 အလိုအလျောက် ရှာဖွေမှု ရလဒ်:\n" + "-"*35 + "\n"
+            res_str = "📊 အကောင်းဆုံး Boom ရလဒ်:\n" + "-"*30 + "\n"
             
             for boom_len, caps in booms.items():
                 if rad_val < boom_len:
@@ -83,8 +84,7 @@ def main(page: ft.Page):
                             found = True
                             ang = math.degrees(math.acos(rad_val / boom_len))
                             res_str += f"✅ Boom {boom_len}m ဖြင့် ချီနိုင်ပါသည်။\n"
-                            res_str += f"   - ထောင့်: ခန့်မှန်း {ang:.1f}° | ဇယား Radius: {safe_r}m\n"
-                            res_str += f"   - ချီနိုင်မည့်ဝန်: {max_load} တန်\n\n"
+                            res_str += f"   ထောင့် {ang:.1f}° | အများဆုံးဝန် {max_load} တန်\n\n"
             
             if not found:
                 t1_res.value, t1_res.color = "❌ ဤဝန်အတွက် ဘေးကင်းသော Boom မရှိပါ။", "red"
@@ -114,14 +114,13 @@ def main(page: ft.Page):
                 
             safe_r, chart_c = get_safe_rad_and_cap(caps, rad_val)
             if safe_r is None:
-                t2_res.value, t2_res.color = "❌ Radius လွန်နေပါသည်။ ဇယားတွင်မရှိပါ။", "red"
+                t2_res.value, t2_res.color = "❌ Radius လွန်နေပါသည်။", "red"
             else:
                 max_load = min(chart_c, rope_cap)
                 ang = math.degrees(math.acos(rad_val / boom_val))
-                res_str = f"📊 Boom {boom_val}m တွင် တွက်ချက်မှု ရလဒ်:\n" + "-"*35 + "\n"
-                res_str += f"   - မြှင့်ရမည့်ထောင့်: ခန့်မှန်း {ang:.1f}°\n"
-                res_str += f"   - တွက်ချက်သော Radius: {safe_r}m\n"
-                res_str += f"   - အများဆုံး ချီနိုင်မည့်ဝန်: {max_load} တန်\n"
+                res_str = f"📊 Boom {boom_val}m တွင် တွက်ချက်မှု:\n" + "-"*30 + "\n"
+                res_str += f"   - မြှင့်ရမည့်ထောင့်: {ang:.1f}°\n"
+                res_str += f"   - အများဆုံး ဝန်: {max_load} တန်\n"
                 t2_res.value, t2_res.color = res_str, "green"
         except Exception:
             t2_res.value, t2_res.color = "ဂဏန်းများကို ပြည့်စုံမှန်ကန်စွာ ထည့်ပါ။", "red"
@@ -131,21 +130,25 @@ def main(page: ft.Page):
         selected_index=0,
         tabs=[
             ft.Tab(text="Auto Planner", content=ft.Container(padding=10, content=ft.Column([
-                ft.Text("လိုချင်သော အကွာအဝေးနှင့် ဝန်ကို ထည့်ပါ-", italic=True),
-                t1_rad, t1_load, ft.ElevatedButton("အကောင်းဆုံး Boom ရှာရန်", on_click=run_tab1, bgcolor="blue", color="white"), t1_res
-            ]))),
+                ft.Container(height=5),
+                t1_rad, t1_load, ft.ElevatedButton("ရှာဖွေမည်", on_click=run_tab1, bgcolor="blue", color="white"), t1_res
+            ], spacing=15))),
             ft.Tab(text="Manual Check", content=ft.Container(padding=10, content=ft.Column([
-                ft.Text("ထုတ်မည့် Boom အရှည်နှင့် အကွာအဝေးကို ထည့်ပါ-", italic=True),
-                t2_boom, t2_rad, ft.ElevatedButton("တန်ချိန်နှင့် ထောင့်ကို တွက်ရန်", on_click=run_tab2, bgcolor="green", color="white"), t2_res
-            ]))),
-        ], expand=1
+                ft.Container(height=5),
+                t2_boom, t2_rad, ft.ElevatedButton("တွက်ချက်မည်", on_click=run_tab2, bgcolor="green", color="white"), t2_res
+            ], spacing=15))),
+        ]
     )
 
     page.add(
-        ft.Text("Steel1 - Crane Planner", size=24, weight="bold", color="blue"),
-        ft.Text("အခြေခံ သတ်မှတ်ချက်များ-", weight="bold"),
-        outrigger_dd, area_dd, parts_in, ft.Divider(), tab_menu
+        ft.Column([
+            ft.Text("Steel1 - Crane Planner", size=24, weight="bold", color="blue"),
+            outrigger_dd, 
+            area_dd, 
+            parts_in, 
+            ft.Divider(), 
+            tab_menu
+        ], spacing=20) # ဤနေရာတွင် Spacing 20 ခြားထားသဖြင့် အကွက်များ လုံးဝ မထပ်တော့ပါ
     )
 
 ft.app(target=main)
-
