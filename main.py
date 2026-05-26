@@ -3,9 +3,10 @@ import math
 
 def main(page: ft.Page):
     page.title = "Steel1 - Crane Planner"
-    page.scroll = "adaptive"
+    page.scroll = "auto" 
     page.theme_mode = ft.ThemeMode.LIGHT
     
+    # ဇယား အချက်အလက်များ
     crane_database = {
         6.3: {
             "360": {
@@ -32,15 +33,17 @@ def main(page: ft.Page):
     }
     single_line_pull = 3.5
     
-    # လေဘယ်များကို တိုတိုရှင်းရှင်း ပြင်ထားသဖြင့် အကွက်များ လုံးဝမထပ်တော့ပါ
+    # အခြေခံ ထည့်သွင်းရန် အကွက်များ
     outrigger_dd = ft.Dropdown(label="Outrigger (m)", options=[ft.dropdown.Option("6.3"), ft.dropdown.Option("5.1")], value="6.3")
     area_dd = ft.Dropdown(label="အလုပ်လုပ်မည့် ဧရိယာ", options=[ft.dropdown.Option("360"), ft.dropdown.Option("front"), ft.dropdown.Option("side")], value="360")
     parts_in = ft.TextField(label="ကြိုးအရေအတွက် (Parts)", value="4", keyboard_type="number")
     
+    # Auto အတွက် အကွက်များ
     t1_rad = ft.TextField(label="လိုအပ်သော Radius (m)", keyboard_type="number")
     t1_load = ft.TextField(label="မချီမည့် ဝန် (တန်)", keyboard_type="number")
     t1_res = ft.Text("", size=15, weight="bold")
     
+    # Manual အတွက် အကွက်များ
     t2_boom = ft.Dropdown(label="Boom အရှည် (m)", options=[ft.dropdown.Option("9.5"), ft.dropdown.Option("16.6"), ft.dropdown.Option("23.52"), ft.dropdown.Option("30.62")], value="16.6")
     t2_rad = ft.TextField(label="အကွာအဝေး Radius (m)", keyboard_type="number")
     t2_res = ft.Text("", size=15, weight="bold")
@@ -66,7 +69,6 @@ def main(page: ft.Page):
             t1_res.value, t1_res.color = err, "orange"
             page.update()
             return
-            
         try:
             rad_val = float(t1_rad.value)
             load_val = float(t1_load.value)
@@ -100,18 +102,15 @@ def main(page: ft.Page):
             t2_res.value, t2_res.color = err, "orange"
             page.update()
             return
-            
         try:
             boom_val = float(t2_boom.value)
             rad_val = float(t2_rad.value)
             rope_cap = int(parts_in.value) * single_line_pull
             caps = crane_database[float(outrigger_dd.value)][area_dd.value.lower()][boom_val]
-            
             if rad_val >= boom_val:
                 t2_res.value, t2_res.color = "❌ Radius သည် Boom အရှည်ထက် မကြီးရပါ။", "red"
                 page.update()
                 return
-                
             safe_r, chart_c = get_safe_rad_and_cap(caps, rad_val)
             if safe_r is None:
                 t2_res.value, t2_res.color = "❌ Radius လွန်နေပါသည်။", "red"
@@ -126,29 +125,41 @@ def main(page: ft.Page):
             t2_res.value, t2_res.color = "ဂဏန်းများကို ပြည့်စုံမှန်ကန်စွာ ထည့်ပါ။", "red"
         page.update()
 
-    tab_menu = ft.Tabs(
-        selected_index=0,
-        tabs=[
-            ft.Tab(text="Auto Planner", content=ft.Container(padding=10, content=ft.Column([
-                ft.Container(height=5),
-                t1_rad, t1_load, ft.ElevatedButton("ရှာဖွေမည်", on_click=run_tab1, bgcolor="blue", color="white"), t1_res
-            ], spacing=15))),
-            ft.Tab(text="Manual Check", content=ft.Container(padding=10, content=ft.Column([
-                ft.Container(height=5),
-                t2_boom, t2_rad, ft.ElevatedButton("တွက်ချက်မည်", on_click=run_tab2, bgcolor="green", color="white"), t2_res
-            ], spacing=15))),
-        ]
+    # --- Mode အရ ပေါ်မည့် အကွက်များ ---
+    auto_col = ft.Column([t1_rad, t1_load, ft.ElevatedButton("အကောင်းဆုံး Boom ရှာရန်", on_click=run_tab1, bgcolor="blue", color="white"), t1_res], visible=True)
+    manual_col = ft.Column([t2_boom, t2_rad, ft.ElevatedButton("တွက်ချက်မည်", on_click=run_tab2, bgcolor="green", color="white"), t2_res], visible=False)
+
+    def mode_changed(e):
+        if mode_dd.value == "Auto (အလိုအလျောက် ရှာရန်)":
+            auto_col.visible = True
+            manual_col.visible = False
+        else:
+            auto_col.visible = False
+            manual_col.visible = True
+        page.update()
+
+    # Tab အစားထိုး Dropdown
+    mode_dd = ft.Dropdown(
+        label="တွက်ချက်မည့်ပုံစံ ရွေးချယ်ပါ",
+        options=[
+            ft.dropdown.Option("Auto (အလိုအလျောက် ရှာရန်)"),
+            ft.dropdown.Option("Manual (ကိုယ်တိုင် Boom ရွေးရန်)")
+        ],
+        value="Auto (အလိုအလျောက် ရှာရန်)",
+        on_change=mode_changed,
+        border_color="blue"
     )
 
     page.add(
-        ft.Column([
-            ft.Text("Steel1 - Crane Planner", size=24, weight="bold", color="blue"),
-            outrigger_dd, 
-            area_dd, 
-            parts_in, 
-            ft.Divider(), 
-            tab_menu
-        ], spacing=20) # ဤနေရာတွင် Spacing 20 ခြားထားသဖြင့် အကွက်များ လုံးဝ မထပ်တော့ပါ
+        ft.Text("Steel1 - Crane Planner", size=24, weight="bold", color="blue"),
+        outrigger_dd, 
+        area_dd, 
+        parts_in, 
+        ft.Divider(),
+        mode_dd, # ဒီနေရာကနေ Auto/Manual ရွေးရပါမယ်
+        ft.Divider(),
+        auto_col,
+        manual_col
     )
 
 ft.app(target=main)
